@@ -1,5 +1,5 @@
-import * as fs from "fs/promises"
 import * as path from "path"
+import * as vscode from "vscode"
 
 import type { Intent } from "../models/Intent"
 
@@ -10,7 +10,7 @@ export class PreHook {
    */
   static async validate(activeIntentId: string): Promise<Intent> {
     if (!activeIntentId || activeIntentId.trim().length === 0) {
-      throw new Error("You must cite a valid active Intent ID")
+      throw new Error("You must cite a valid active Intent ID. Call select_active_intent first.")
     }
 
     const cwd = process.cwd()
@@ -18,7 +18,9 @@ export class PreHook {
     const intentsFile = path.join(orchestrationDir, "active_intents.yaml")
 
     try {
-      const yaml = await fs.readFile(intentsFile, "utf-8")
+      const uri = vscode.Uri.file(intentsFile)
+      const data = await vscode.workspace.fs.readFile(uri)
+      const yaml = Buffer.from(data).toString("utf8")
       // Minimal parse: find block for the requested id
       const block = PreHook.extractIntentBlock(yaml, activeIntentId)
       if (!block) {

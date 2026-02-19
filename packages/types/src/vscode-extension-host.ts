@@ -335,6 +335,8 @@ export type ExtensionState = Pick<
 	toolRequirements?: Record<string, boolean> // Map of tool names to their requirements (e.g. {"apply_diff": true})
 
 	cwd?: string // Current working directory
+	activeIntentId?: string // Currently selected active intent ID for session
+	isIntentVerified?: boolean // Whether select_active_intent was successfully called for session
 	telemetrySetting: TelemetrySetting
 	telemetryKey?: string
 	machineId?: string

@@ -34,6 +34,7 @@ import { updateTodoListTool } from "../tools/UpdateTodoListTool"
 import { runSlashCommandTool } from "../tools/RunSlashCommandTool"
 import { skillTool } from "../tools/SkillTool"
 import { generateImageTool } from "../tools/GenerateImageTool"
+import { selectActiveIntentTool } from "../tools/SelectActiveIntentTool"
 import { applyDiffTool as applyDiffToolClass } from "../tools/ApplyDiffTool"
 import { isValidToolName, validateToolUse } from "../tools/validateToolUse"
 import { codebaseSearchTool } from "../tools/CodebaseSearchTool"
@@ -326,6 +327,15 @@ export async function presentAssistantMessage(cline: Task) {
 
 			const toolDescription = (): string => {
 				switch (block.name) {
+
+						case "select_active_intent":
+							await selectActiveIntentTool.handle(cline, block as ToolUse<"select_active_intent">, {
+								askApproval,
+								handleError,
+								pushToolResult,
+							})
+							break
+
 					case "execute_command":
 						return `[${block.name} for '${block.params.command}']`
 					case "read_file":
@@ -672,6 +682,35 @@ export async function presentAssistantMessage(cline: Task) {
 						),
 					)
 					break
+				}
+			}
+
+			// Enforce intent handshake for mutating tools: block if intent not verified
+			if (!block.partial) {
+				const MUTATING_TOOLS = new Set([
+					"write_to_file",
+					"execute_command",
+					"apply_diff",
+					"edit",
+					"edit_file",
+					"apply_patch",
+					"search_and_replace",
+					"search_replace",
+				])
+
+				if (MUTATING_TOOLS.has(String(block.name))) {
+					const providerState = await cline.providerRef.deref()?.getState()
+					if (!providerState?.isIntentVerified) {
+						cline.consecutiveMistakeCount++
+						cline.recordToolError(block.name as ToolName, "You must cite a valid active Intent ID. Call select_active_intent first.")
+						cline.pushToolResultToUserContent({
+							type: "tool_result",
+							tool_use_id: sanitizeToolUseId(toolCallId),
+							content: formatResponse.toolError("You must cite a valid active Intent ID. Call select_active_intent first."),
+							is_error: true,
+						})
+						break
+					}
 				}
 			}
 
