@@ -17,7 +17,6 @@ import { convertNewFileToUnifiedDiff, computeDiffStats, sanitizeUnifiedDiff } fr
 import type { ToolUse } from "../../shared/tools"
 
 import { BaseTool, ToolCallbacks } from "./BaseTool"
-import { executePreHook } from "../../hooks/engines/PreHook"
 // Hooks integration
 import { PreHook } from "../../hooks/engines/PreHook"
 import { PostHook } from "../../hooks/engines/PostHook"
@@ -33,7 +32,6 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 	readonly name = "write_to_file" as const
 
 	async execute(params: WriteToFileParams, task: Task, callbacks: ToolCallbacks): Promise<void> {
-		executePreHook("write_to_file", params) // Gatekeeper: block if no active intent
 		const { pushToolResult, handleError, askApproval } = callbacks
 		const relPath = params.path
 		let newContent = params.content
@@ -42,9 +40,7 @@ export class WriteToFileTool extends BaseTool<"write_to_file"> {
 		let intentIdForTrace: string | undefined
 		try {
 			// Select intent: first IN_PROGRESS in .orchestration/active_intents.yaml
-			const providerRef = task.providerRef.deref()
-			const activeIntentId = providerRef ? (await providerRef.getState())?.activeIntentId : undefined
-			const intent = await PreHook.validate(activeIntentId ?? "INT-001")
+			const intent = await PreHook.validate(task.providerRef.deref() ? (await task.providerRef.deref()!.getState())?.activeIntentId ?? "INT-001")
 			intentIdForTrace = intent.id
 			// Scope enforcement: ensure relPath matches owned_scope
 			if (relPath && intent.owned_scope?.length) {

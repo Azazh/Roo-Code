@@ -1,7 +1,0 @@
-intents:
-  - id: "refactor-auth"
-    scope: "src/auth/"
-    constraints: "Must use OAuth2, no plaintext passwords"
-  - id: "add-logging"
-    scope: "src/utils/"
-    constraints: "Use winston, log to console and file"

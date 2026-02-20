@@ -429,32 +429,4 @@ export class CustomToolRegistry {
 	}
 }
 
-// Register select_active_intent tool in the registry
-
-export const customToolRegistry = new CustomToolRegistry()
-
-// Register select_active_intent tool in the registry
-const selectActiveIntentTool: CustomToolDefinition = {
-	name: "select_active_intent",
-	description: "Allows the user to select and activate an intent for the current session.",
-	parameters: {
-		type: "object",
-		properties: {
-			intentId: {
-				type: "string",
-				description: "The ID of the intent to activate.",
-			},
-		},
-		required: ["intentId"],
-	},
-	async execute(args: { intentId: string }, _context: unknown): Promise<string> {
-		// Logic to activate the intent goes here.
-		const intentId = args.intentId
-		console.log(`Activating intent: ${intentId}`)
-		return `<intent_context id="${intentId}" />`
-	},
-}
-
-customToolRegistry.register(selectActiveIntentTool)
-
 export const customToolRegistry = new CustomToolRegistry()

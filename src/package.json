@@ -45,9 +45,6 @@
 		"roo code",
 		"roocode"
 	],
-	"scripts": {
-		"build": "node esbuild.mjs"
-	},
 	"activationEvents": [
 		"onLanguage",
 		"onStartupFinished"

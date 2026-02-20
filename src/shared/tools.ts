@@ -116,7 +116,6 @@ export type NativeToolArgs = {
 	use_mcp_tool: { server_name: string; tool_name: string; arguments?: Record<string, unknown> }
 	write_to_file: { path: string; content: string }
 	// Add more tools as they are migrated to native protocol
-	select_active_intent: { intent_id: string }
 }
 
 /**
@@ -289,7 +288,6 @@ export const TOOL_DISPLAY_NAMES: Record<ToolName, string> = {
 	run_slash_command: "run slash command",
 	skill: "load skill",
 	generate_image: "generate images",
-	select_active_intent: "select active intent",
 	custom_tool: "use custom tools",
 } as const
 

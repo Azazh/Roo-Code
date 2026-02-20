@@ -42,9 +42,7 @@ export class ExecuteCommandTool extends BaseTool<"execute_command"> {
 		// Governance: validate active intent before any command execution
 		let intentIdForTrace: string | undefined
 		try {
-			const providerRef = task.providerRef.deref()
-			const activeIntentId = providerRef ? (await providerRef.getState())?.activeIntentId : undefined
-			const intent = await PreHook.validate(activeIntentId ?? "INT-001")
+			const intent = await PreHook.validate(task.providerRef.deref() ? (await task.providerRef.deref()!.getState())?.activeIntentId ?? "INT-001")
 			intentIdForTrace = intent.id
 		} catch (e) {
 			pushToolResult((e as Error).message)
