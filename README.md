@@ -7,41 +7,41 @@ This fork presents Roo‑Code as a Governed AI‑Native IDE that implements stri
 - **From probabilistic assistants to governed orchestration:** The IDE now operates under Deterministic Lifecycle Hooks that constrain tool execution by validated intent and produce immutable audit trails.
 - **Eliminates “Vibe Coding” and repays Cognitive Debt:** We formalize intent‑to‑code traceability via a Two‑Stage State Machine and append‑only ledger. Every side effect is explicitly authorized (intent handshake) and recorded (content hashing + git revision).
 
-## 2. The Governance Layer 
+## 2. The Governance Layer
 
 - **Middleware/Interceptor Pattern:** Governance is implemented in [src/hooks](src/hooks), wrapping tools without invasive modifications:
-	- [HookEngine](src/hooks/engines/HookEngine.ts): Deterministic IoC wrapper around tool calls.
-	- [PreHook](src/hooks/engines/PreHook.ts): Gatekeeper validates `intent_id`, enforces scope (glob), and blocks out‑of‑bounds changes.
-	- [PostHook](src/hooks/engines/PostHook.ts): Auditor computes normalized SHA‑256 `content_hash`, captures `git_revision`, and appends to `.orchestration/agent_trace.jsonl`.
-	- [IntentLockManager](src/hooks/engines/IntentLockManager.ts): TTL‑based file locks prevent parallel collisions (optimistic locking).
+    - [HookEngine](src/hooks/engines/HookEngine.ts): Deterministic IoC wrapper around tool calls.
+    - [PreHook](src/hooks/engines/PreHook.ts): Gatekeeper validates `intent_id`, enforces scope (glob), and blocks out‑of‑bounds changes.
+    - [PostHook](src/hooks/engines/PostHook.ts): Auditor computes normalized SHA‑256 `content_hash`, captures `git_revision`, and appends to `.orchestration/agent_trace.jsonl`.
+    - [IntentLockManager](src/hooks/engines/IntentLockManager.ts): TTL‑based file locks prevent parallel collisions (optimistic locking).
 - **Inversion of Control (IoC) & Privilege Separation:** Hooks remain isolated from tool logic in [src/core/tools](src/core/tools), enabling non‑destructive integration and uniform policy enforcement across write and execute paths.
 
-## 3. The Intent Handshake 
+## 3. The Intent Handshake
 
 - **Two‑Stage State Machine:** User Prompt → Intent Check (PreHook) → Action (Tool).
-	- Execution is blocked until a valid `intent_id` is selected and confirmed; the Gatekeeper enforces owned scope and preconditions.
+    - Execution is blocked until a valid `intent_id` is selected and confirmed; the Gatekeeper enforces owned scope and preconditions.
 - **Curated Context Injection:** The system reads `active_intents.yaml` (the project’s shared brain) and injects a minimal `<intent_context>` into the LLM to prevent Context Rot. See [generateSystemPrompt.ts](src/core/webview/generateSystemPrompt.ts).
 
-## 4. Mathematical Traceability 
+## 4. Mathematical Traceability
 
 - **Spatial Independence:** We compute SHA‑256 hashes over normalized content (whitespace collapsed) — not line diffs — so identity remains stable across reformatting.
 - **AST correlation:** Optional `ast_node_type` is detected via the compiler API for semantic linkage. See [astCapture.ts](src/hooks/utilities/astCapture.ts).
 - **Classification:**
-	- `AST_REFACTOR` — structural adjustments within existing intent envelope.
-	- `INTENT_EVOLUTION` — features that evolve scope under an explicit intent.
+    - `AST_REFACTOR` — structural adjustments within existing intent envelope.
+    - `INTENT_EVOLUTION` — features that evolve scope under an explicit intent.
 
 ## 5. The Archaeological Dig (Interim Specifics)
 
 - **Points of No Return (PONR):**
-	- [WriteToFileTool.ts](src/core/tools/WriteToFileTool.ts) — durable workspace edits.
-	- [ExecuteCommandTool.ts](src/core/tools/ExecuteCommandTool.ts) — shell actions mutating environment/artifacts.
+    - [WriteToFileTool.ts](src/core/tools/WriteToFileTool.ts) — durable workspace edits.
+    - [ExecuteCommandTool.ts](src/core/tools/ExecuteCommandTool.ts) — shell actions mutating environment/artifacts.
 - **Prompt injection point:** Minimal `<intent_context>` is assembled and injected in [generateSystemPrompt.ts](src/core/webview/generateSystemPrompt.ts), binding execution to the user‑approved intent.
 
 ## 6. Data Model & .orchestration/ Sidecar
 
 - **Ledger file:** `.orchestration/agent_trace.jsonl`
 - **Types:** [AgentTrace.ts](src/hooks/models/AgentTrace.ts)
-- **Schema (excerpt):
+- \*\*Schema (excerpt):
 
 ```json
 {
@@ -82,35 +82,38 @@ This fork presents Roo‑Code as a Governed AI‑Native IDE that implements stri
 
 ```mermaid
 sequenceDiagram
-		participant U as User
-		participant W as Webview (React)
-		participant E as Extension Host
-		participant H as HookEngine (PreHook/PostHook)
-		participant T as Tool (Execute/Write)
-		participant L as Ledger (agent_trace.jsonl)
+	participant U as User
+	participant W as Webview (React)
+	participant E as Extension Host
+	participant H as HookEngine (PreHook/PostHook)
+	participant L as LLM (Reasoning only)
+	participant T as Tool (Deterministic PONR)
+	participant D as Ledger (agent_trace.jsonl)
 
-		U->>W: Types request (goal/intent)
-		W->>E: postMessage({ type: "ask", payload })
-		E->>H: executeWithHooks(payload)
+	U->>W: Types request (goal/intent)
+	W->>E: postMessage({ type: "ask", payload })
+	E->>H: executeWithHooks(payload)
 
-		H->>H: PreHook: validate intent_id & scope
+	H->>H: PreHook: validate intent_id & scope
 
-		alt Intent missing or invalid
-				H-->>E: Block execution (error)
-				E-->>W: Notify (select/confirm intent)
-		else Intent valid
-				H->>T: Execute Tool (deterministic PONR)
-				T-->>H: Result (outputs, affected files)
-				H->>H: PostHook: compute SHA-256 content_hash
-				H->>L: Append trace entry (intent_id, content_hash, git_revision)
-				H-->>E: Success (trace id)
-				E-->>W: Update UI (status, artifacts)
-		end
+	alt Intent missing or invalid
+		H-->>E: Block execution (error)
+		E-->>W: Notify (select/confirm intent)
+	else Intent valid
+		H->>L: Invoke with enriched context (intent, sidecar constraints)
+		L-->>H: Reasoning output (planned tool calls, reasoning trace)
+		H->>T: Execute Tool (deterministic, based on LLM plan)
+		T-->>H: Result (outputs, affected files)
+		H->>H: PostHook: compute SHA-256 content_hash, extract AST
+		H->>D: Append trace entry (intent_id, reasoning_id, content_hash, AST, git_revision)
+		H-->>E: Success (trace id)
+		E-->>W: Update UI (status, artifacts, trace link)
+	end
 ```
 
 ---
 
-### Engineering Principles 
+### Engineering Principles
 
 - **Deterministic Lifecycle Hooks:** PreHook and PostHook wrap all mutating operations; execution only proceeds under validated intent and produces verifiable artifacts.
 - **Autonomous Recovery:** Invalid or missing intent blocks execution and prompts the UI to select/confirm — restoring a safe operating envelope.
@@ -125,4 +128,3 @@ sequenceDiagram
 - Prompt assembly: [generateSystemPrompt.ts](src/core/webview/generateSystemPrompt.ts)
 - Ledger schema docs: [docs/LedgerSchema.md](docs/LedgerSchema.md)
 - Diagrams: [diagrams/sequence.mmd](diagrams/sequence.mmd), [diagrams/ledger-schema.mmd](diagrams/ledger-schema.mmd)
-
