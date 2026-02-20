@@ -429,10 +429,10 @@ export class CustomToolRegistry {
 	}
 }
 
-/**
- * Define the `select_active_intent` tool.
- */
-register({
+// Register select_active_intent tool in the registry
+import type { CustomToolDefinition } from "@roo-code/types"
+
+const selectActiveIntentTool: CustomToolDefinition = {
 	name: "select_active_intent",
 	description: "Allows the user to select and activate an intent for the current session.",
 	parameters: {
@@ -445,11 +445,13 @@ register({
 		},
 		required: ["intentId"],
 	},
-	execute: async ({ intentId }) => {
+	async execute(params: { intentId: string }) {
 		// Logic to activate the intent goes here.
-		console.log(`Activating intent: ${intentId}`)
-		return { success: true, message: `Intent ${intentId} activated.` }
+		console.log(`Activating intent: ${params.intentId}`)
+		return { success: true, message: `Intent ${params.intentId} activated.` }
 	},
-})
+}
+
+customToolRegistry.register(selectActiveIntentTool)
 
 export const customToolRegistry = new CustomToolRegistry()
