@@ -1,4 +1,3 @@
-
 import * as vscode from "vscode"
 import { WebviewMessage } from "../../shared/WebviewMessage"
 import { defaultModeSlug } from "../../shared/modes"
@@ -69,13 +68,15 @@ export const generateSystemPrompt = async (provider: ClineProvider, message: Web
 		provider.getSkillsManager(),
 	)
 
-	// Reasoning Intercept: dynamically inject intent context into the final prompt
+	// Inject governance protocol enforcement into the system prompt
+	const protocolInstruction =
+		'PROTOCOL ENFORCEMENT: You are an Intent-Driven Architect. You are FORBIDDEN from writing code or executing commands immediately. Your first action for any new request MUST be to analyze the user\'s intent and call "select_active_intent(intent_id)". You cannot proceed to "write_to_file" or "execute_command" until you have received the <intent_context> block.'
+
+	// Validate and inject the active intent context
 	const state = await provider.getState()
 	const activeIntentId = state?.activeIntentId ?? "INT-001"
 	const intent = await PreHook.validate(activeIntentId)
 	const intentBlock = buildIntentContextBlock(intent)
-	const protocolInstruction =
-		'PROTOCOL ENFORCEMENT: You are an Intent-Driven Architect. You are FORBIDDEN from writing code or executing commands immediately. Your first action for any new request MUST be to analyze the user\'s intent and call \"select_active_intent(intent_id)\". You cannot proceed to \"write_to_file\" or \"execute_command\" until you have received the <intent_context> block.'
 
 	return `${protocolInstruction}\n\n${intentBlock}\n\n${basePrompt}`
 }

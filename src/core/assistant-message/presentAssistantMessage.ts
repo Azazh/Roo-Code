@@ -325,17 +325,15 @@ export async function presentAssistantMessage(cline: Task) {
 			const state = await cline.providerRef.deref()?.getState()
 			const { mode, customModes, experiments: stateExperiments, disabledTools } = state ?? {}
 
-			const toolDescription = (): string => {
+			const toolDescription = async (): Promise<string | void> => {
 				switch (block.name) {
-
-						case "select_active_intent":
-							await selectActiveIntentTool.handle(cline, block as ToolUse<"select_active_intent">, {
-								askApproval,
-								handleError,
-								pushToolResult,
-							})
-							break
-
+					case "select_active_intent":
+						await selectActiveIntentTool.handle(cline, block as ToolUse<"select_active_intent">, {
+							askApproval,
+							handleError,
+							pushToolResult,
+						})
+						break
 					case "execute_command":
 						return `[${block.name} for '${block.params.command}']`
 					case "read_file":
@@ -702,11 +700,16 @@ export async function presentAssistantMessage(cline: Task) {
 					const providerState = await cline.providerRef.deref()?.getState()
 					if (!providerState?.isIntentVerified) {
 						cline.consecutiveMistakeCount++
-						cline.recordToolError(block.name as ToolName, "You must cite a valid active Intent ID. Call select_active_intent first.")
+						cline.recordToolError(
+							block.name as ToolName,
+							"You must cite a valid active Intent ID. Call select_active_intent first.",
+						)
 						cline.pushToolResultToUserContent({
 							type: "tool_result",
 							tool_use_id: sanitizeToolUseId(toolCallId),
-							content: formatResponse.toolError("You must cite a valid active Intent ID. Call select_active_intent first."),
+							content: formatResponse.toolError(
+								"You must cite a valid active Intent ID. Call select_active_intent first.",
+							),
 							is_error: true,
 						})
 						break
