@@ -148,4 +148,20 @@ export class PreHook {
 			recoverySuggestion: "Please modify the command or request additional permissions.",
 		}
 	}
+
+	/**
+	 * Enforce scope validation for file operations.
+	 */
+	static enforceScope(filePath: string, intent: Intent): void {
+		const isValid = intent.owned_scope.some((pattern) => {
+			const regex = new RegExp(`^${pattern.replace(/\*\*/g, ".*").replace(/\*/g, "[^/]*")}$`)
+			return regex.test(filePath)
+		})
+
+		if (!isValid) {
+			throw new Error(
+				`Scope Violation: Intent "${intent.id}" is not authorized to edit "${filePath}". Request scope expansion.`,
+			)
+		}
+	}
 }
