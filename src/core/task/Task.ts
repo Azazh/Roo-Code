@@ -697,4 +697,48 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	public start(): void {
 		// Default implementation
 	}
+
+	/**
+	 * Overwrites the Cline messages for the task.
+	 * @param messages - The new Cline messages to set.
+	 */
+	public overwriteClineMessages(messages: ClineMessage[]): void {
+		this.clineMessages = messages
+	}
+
+	/**
+	 * Overwrites the API conversation history for the task.
+	 * @param history - The new API conversation history to set.
+	 */
+	public overwriteApiConversationHistory(history: ApiMessage[]): void {
+		this.apiConversationHistory = history
+	}
+
+	/**
+	 * Sends a message or performs an action based on the task's state.
+	 * @param type - The type of message or action.
+	 * @param content - The content of the message or action.
+	 */
+	public async say(type: string, content: string): Promise<void> {
+		console.log(`[Task#say] Type: ${type}, Content: ${content}`)
+	}
+
+	/**
+	 * Records tool usage for the task.
+	 * @param toolName - The name of the tool used.
+	 */
+	public recordToolUsage(toolName: string): void {
+		if (!this.toolUsage[toolName]) {
+			this.toolUsage[toolName] = { count: 0 }
+		}
+		this.toolUsage[toolName].count++
+	}
+
+	/**
+	 * Records tool errors for the task.
+	 * @param toolName - The name of the tool that encountered an error.
+	 */
+	public recordToolError(toolName: string): void {
+		console.error(`[Task#recordToolError] Tool: ${toolName} encountered an error.`)
+	}
 }
