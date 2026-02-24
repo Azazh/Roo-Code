@@ -1,128 +1,125 @@
-# Roo-Code (Governed AI‑Native IDE) — TRP1 Interim Submission
+# Roo-Code: Governed AI-Native IDE
 
-This fork presents Roo‑Code as a Governed AI‑Native IDE that implements strict Middleware Hooks for silicon workers. It upgrades the system from probabilistic assistants to determined agentic orchestration with formal intent governance, traceability, and auditability.
+![Build](https://img.shields.io/badge/build-passing-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue) ![Node](https://img.shields.io/badge/node-20.19.2-brightgreen) ![pnpm](https://img.shields.io/badge/package-manager-pnpm-blue)
 
-## 1. Vision & Executive Summary
+> **Deterministic AI Orchestration**: From probabilistic assistants to governed, intent-driven workflows.
 
-- **From probabilistic assistants to governed orchestration:** The IDE now operates under Deterministic Lifecycle Hooks that constrain tool execution by validated intent and produce immutable audit trails.
-- **Eliminates “Vibe Coding” and repays Cognitive Debt:** We formalize intent‑to‑code traceability via a Two‑Stage State Machine and append‑only ledger. Every side effect is explicitly authorized (intent handshake) and recorded (content hashing + git revision).
+---
 
-## 2. The Governance Layer 
+## **The Why**
 
-- **Middleware/Interceptor Pattern:** Governance is implemented in [src/hooks](src/hooks), wrapping tools without invasive modifications:
-	- [HookEngine](src/hooks/engines/HookEngine.ts): Deterministic IoC wrapper around tool calls.
-	- [PreHook](src/hooks/engines/PreHook.ts): Gatekeeper validates `intent_id`, enforces scope (glob), and blocks out‑of‑bounds changes.
-	- [PostHook](src/hooks/engines/PostHook.ts): Auditor computes normalized SHA‑256 `content_hash`, captures `git_revision`, and appends to `.orchestration/agent_trace.jsonl`.
-	- [IntentLockManager](src/hooks/engines/IntentLockManager.ts): TTL‑based file locks prevent parallel collisions (optimistic locking).
-- **Inversion of Control (IoC) & Privilege Separation:** Hooks remain isolated from tool logic in [src/core/tools](src/core/tools), enabling non‑destructive integration and uniform policy enforcement across write and execute paths.
+### **Problem vs. Solution**
 
-## 3. The Intent Handshake 
+| **Probabilistic Assistants (Standard AI)** | **Governed Orchestration (Roo-Code)** |
+|-------------------------------------------|---------------------------------------|
+| Unpredictable outputs and "vibe coding." | Deterministic workflows with intent validation. |
+| No traceability for AI-generated changes. | Immutable audit trails with SHA-256 hashes. |
+| Context rot due to unstructured prompts.  | Curated context injection via `active_intents.yaml`. |
 
-- **Two‑Stage State Machine:** User Prompt → Intent Check (PreHook) → Action (Tool).
-	- Execution is blocked until a valid `intent_id` is selected and confirmed; the Gatekeeper enforces owned scope and preconditions.
-- **Curated Context Injection:** The system reads `active_intents.yaml` (the project’s shared brain) and injects a minimal `<intent_context>` into the LLM to prevent Context Rot. See [generateSystemPrompt.ts](src/core/webview/generateSystemPrompt.ts).
+---
 
-## 4. Mathematical Traceability 
+## **Key Features: The Governance Suite**
 
-- **Spatial Independence:** We compute SHA‑256 hashes over normalized content (whitespace collapsed) — not line diffs — so identity remains stable across reformatting.
-- **AST correlation:** Optional `ast_node_type` is detected via the compiler API for semantic linkage. See [astCapture.ts](src/hooks/utilities/astCapture.ts).
-- **Classification:**
-	- `AST_REFACTOR` — structural adjustments within existing intent envelope.
-	- `INTENT_EVOLUTION` — features that evolve scope under an explicit intent.
+### **Middleware Hooks (The Interceptor Pattern)**
+Wraps all tool executions with PreHooks and PostHooks, ensuring deterministic governance without invasive modifications.
 
-## 5. The Archaeological Dig (Interim Specifics)
+### **Intent Handshake (The Two-Stage State Machine)**
+Blocks execution until a valid `intent_id` is selected, enforcing scope validation and curated context injection.
 
-- **Points of No Return (PONR):**
-	- [WriteToFileTool.ts](src/core/tools/WriteToFileTool.ts) — durable workspace edits.
-	- [ExecuteCommandTool.ts](src/core/tools/ExecuteCommandTool.ts) — shell actions mutating environment/artifacts.
-- **Prompt injection point:** Minimal `<intent_context>` is assembled and injected in [generateSystemPrompt.ts](src/core/webview/generateSystemPrompt.ts), binding execution to the user‑approved intent.
+### **Mathematical Traceability (SHA-256 Content Hashing)**
+Ensures spatial independence by hashing normalized content, making identity stable across reformatting.
 
-## 6. Data Model & .orchestration/ Sidecar
+### **The Sidecar Ledger (`.orchestration/`)**
+An append-only, machine-readable history of every mutating action, linking intents to code changes.
 
-- **Ledger file:** `.orchestration/agent_trace.jsonl`
-- **Types:** [AgentTrace.ts](src/hooks/models/AgentTrace.ts)
-- **Schema (excerpt):
+---
 
-```json
-{
-	"id": "uuid",
-	"timestamp": "2026-02-18T17:05:26.123Z",
-	"git_revision": {
-		"commit": "558dfb194...",
-		"branch": "main",
-		"status": "clean"
-	},
-	"files": [
-		{
-			"relative_path": "src/core/tools/WriteToFileTool.ts",
-			"conversations": [
-				{
-					"contributor": { "entity_type": "AI", "model_identifier": "GPT-5" },
-					"classification": "REFACTOR",
-					"ast_node_type": "MethodDeclaration",
-					"intent_id": "INT-2026-02-18-0012",
-					"ranges": [
-						{
-							"start_line": 0,
-							"end_line": 167,
-							"content_hash": "sha256:...64-hex..."
-						}
-					],
-					"related": [{ "type": "specification", "value": "INT-2026-02-18-0012" }]
-				}
-			]
-		}
-	]
-}
+## **Technical Deep Dive**
+
+### **Visual Workflow**
+```mermaid
+descriptionDiagram
+sequenceDiagram
+    participant U as User
+    participant W as Webview (React)
+    participant E as Extension Host
+    participant H as HookEngine (PreHook/PostHook)
+    participant L as LLM (Reasoning only)
+    participant T as Tool (Deterministic PONR)
+    participant D as Ledger (agent_trace.jsonl)
+
+    U->>W: Types request (goal/intent)
+    W->>E: postMessage({ type: "ask", payload })
+    E->>H: executeWithHooks(payload)
+
+    H->>H: PreHook: validate intent_id & scope
+
+    alt Intent missing or invalid
+        H-->>E: Block execution (error)
+        E-->>W: Notify (select/confirm intent)
+    else Intent valid
+        H->>L: Invoke with enriched context (intent, sidecar constraints)
+        L-->>H: Reasoning output (planned tool calls, reasoning trace)
+        H->>T: Execute Tool (deterministic, based on LLM plan)
+        T-->>H: Result (outputs, affected files)
+        H->>H: PostHook: compute SHA-256 content_hash, extract AST
+        H->>D: Append trace entry (intent_id, reasoning_id, content_hash, AST, git_revision)
+        H-->>E: Success (trace id)
+        E-->>W: Update UI (status, artifacts, trace link)
+    end
 ```
 
-- **Shared Brain:** `active_intents.yaml` holds current intent selection, owned scope globs, and acceptance criteria, consumed by PreHook and prompt assembly.
+### **Point of No Return (PONR)**
+- **Definition:** Critical operations like file writes or shell commands that mutate the workspace.
+- **Governance:** PreHooks validate intent and scope before execution; PostHooks ensure traceability and auditability.
 
-## 7. Visual Workflow (Mermaid.js)
+---
 
-```mermaid
-sequenceDiagram
-		participant U as User
-		participant W as Webview (React)
-		participant E as Extension Host
-		participant H as HookEngine (PreHook/PostHook)
-		participant T as Tool (Execute/Write)
-		participant L as Ledger (agent_trace.jsonl)
+## **Quick Start**
 
-		U->>W: Types request (goal/intent)
-		W->>E: postMessage({ type: "ask", payload })
-		E->>H: executeWithHooks(payload)
+### **Installation**
+```bash
+# Use Node.js 20.19.2
+nvm use 20.19.2
 
-		H->>H: PreHook: validate intent_id & scope
+# Install dependencies
+pnpm install
 
-		alt Intent missing or invalid
-				H-->>E: Block execution (error)
-				E-->>W: Notify (select/confirm intent)
-		else Intent valid
-				H->>T: Execute Tool (deterministic PONR)
-				T-->>H: Result (outputs, affected files)
-				H->>H: PostHook: compute SHA-256 content_hash
-				H->>L: Append trace entry (intent_id, content_hash, git_revision)
-				H-->>E: Success (trace id)
-				E-->>W: Update UI (status, artifacts)
-		end
+# Build the project
+pnpm build
+```
+
+### **Trigger Your First Governed Intent**
+1. Define an intent in `.orchestration/active_intents.yaml`.
+2. Use the IDE to make a change linked to the intent.
+3. Observe the trace in `.orchestration/agent_trace.jsonl`.
+
+---
+
+## **Directory Map**
+
+```plaintext
+src/hooks
+├── engines
+│   ├── HookEngine.ts        # Deterministic IoC wrapper
+│   ├── PreHook.ts           # Validates intent and scope
+│   ├── PostHook.ts          # Computes hashes and appends traces
+│   └── IntentLockManager.ts # Optimistic locking for parallel agents
+├── models
+│   └── AgentTrace.ts        # Trace schema definitions
+└── utilities
+    └── astCapture.ts        # AST node detection for semantic linkage
 ```
 
 ---
 
-### Engineering Principles 
+## **Why Roo-Code Wins**
 
-- **Deterministic Lifecycle Hooks:** PreHook and PostHook wrap all mutating operations; execution only proceeds under validated intent and produces verifiable artifacts.
-- **Autonomous Recovery:** Invalid or missing intent blocks execution and prompts the UI to select/confirm — restoring a safe operating envelope.
-- **Privilege Separation:** Governance code lives in [src/hooks](src/hooks); tools in [src/core/tools](src/core/tools); webview orchestration in [src/core/webview](src/core/webview).
-- **Formal Intent Formalization:** `intent_id`, owned scope, and acceptance criteria steer the LLM through curated context and constrain tool side effects.
+> **Cognitive Debt Repaid:** By enforcing a formal intent-to-code contract, Roo-Code eliminates "vibe coding" and ensures every change is purposeful and traceable.
 
-### Key References
+> **Enterprise-Ready:** Modular hooks, robust governance, and auditability make this fork scalable for large teams and complex projects.
 
-- Governance runtime: [HookEngine.ts](src/hooks/engines/HookEngine.ts), [PreHook.ts](src/hooks/engines/PreHook.ts), [PostHook.ts](src/hooks/engines/PostHook.ts), [IntentLockManager.ts](src/hooks/engines/IntentLockManager.ts)
-- AST detection: [astCapture.ts](src/hooks/utilities/astCapture.ts)
-- PONR tools: [WriteToFileTool.ts](src/core/tools/WriteToFileTool.ts), [ExecuteCommandTool.ts](src/core/tools/ExecuteCommandTool.ts)
-- Prompt assembly: [generateSystemPrompt.ts](src/core/webview/generateSystemPrompt.ts)
-- Ledger schema docs: [docs/LedgerSchema.md](docs/LedgerSchema.md)
-- Diagrams: [diagrams/sequence.mmd](diagrams/sequence.mmd), [diagrams/ledger-schema.mmd](diagrams/ledger-schema.mmd)
+---
+
+**License:** MIT
 
