@@ -268,3 +268,8 @@ export class GenerateImageTool extends BaseTool<"generate_image"> {
 }
 
 export const generateImageTool = new GenerateImageTool()
+export { BaseTool, ToolCallbacks }
+// Reverting to default state by exporting generateSystemPrompt
+export const generateSystemPrompt = () => {
+	// Default implementation
+}

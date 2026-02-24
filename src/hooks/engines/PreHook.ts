@@ -1,8 +1,8 @@
 import * as fs from "fs/promises"
 import * as path from "path"
+import * as vscode from "vscode"
 
 import type { Intent } from "../models/Intent"
-import { Tool } from "../models/Tool"
 
 export class PreHook {
 	/**
@@ -95,6 +95,57 @@ export class PreHook {
 			return `<intent_context>${JSON.stringify(intent)}</intent_context>`
 		} catch (error) {
 			throw new Error(`Failed to select active intent: ${error.message}`)
+		}
+	}
+
+	// Adding command classification and UI-blocking authorization
+
+	/**
+	 * Classify commands as Safe or Destructive.
+	 */
+	static classifyCommand(command: string): "Safe" | "Destructive" {
+		const safeCommands = ["read_file", "list_files"]
+		const destructiveCommands = ["write_file", "delete_file", "execute_command"]
+
+		if (safeCommands.includes(command)) {
+			return "Safe"
+		} else if (destructiveCommands.includes(command)) {
+			return "Destructive"
+		}
+
+		throw new Error(`Unknown command: ${command}`)
+	}
+
+	/**
+	 * Trigger UI-blocking authorization for Destructive commands.
+	 */
+	static async authorizeCommand(command: string): Promise<boolean> {
+		const classification = PreHook.classifyCommand(command)
+
+		if (classification === "Destructive") {
+			const userResponse = await vscode.window.showWarningMessage(
+				`The command "${command}" is classified as Destructive. Do you want to proceed?`,
+				{ modal: true },
+				"Approve",
+				"Reject",
+			)
+
+			return userResponse === "Approve"
+		}
+
+		return true // Safe commands are auto-approved
+	}
+
+	// Adding Autonomous Recovery logic
+
+	/**
+	 * Handle recovery when a command is rejected.
+	 */
+	static handleRecovery(command: string, reason: string): object {
+		return {
+			error: true,
+			message: `Command "${command}" was rejected. Reason: ${reason}`,
+			recoverySuggestion: "Please modify the command or request additional permissions.",
 		}
 	}
 }
