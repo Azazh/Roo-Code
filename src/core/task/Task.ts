@@ -719,8 +719,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	 * @param type - The type of message or action.
 	 * @param content - The content of the message or action.
 	 */
-	public async say(type: string, content: string): Promise<void> {
-		console.log(`[Task#say] Type: ${type}, Content: ${content}`)
+	public async say(type: string, content: string, images?: string[], partial?: boolean): Promise<void> {
+		console.log(`[Task#say] Type: ${type}, Content: ${content}, Images: ${images}, Partial: ${partial}`)
 	}
 
 	/**
@@ -738,7 +738,25 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	 * Records tool errors for the task.
 	 * @param toolName - The name of the tool that encountered an error.
 	 */
-	public recordToolError(toolName: string): void {
-		console.error(`[Task#recordToolError] Tool: ${toolName} encountered an error.`)
+	public recordToolError(toolName: string, errorMessage?: string): void {
+		console.error(`[Task#recordToolError] Tool: ${toolName}, Error: ${errorMessage}`)
+	}
+
+	/**
+	 * Simulates an assistant ask operation.
+	 * @param content - The content of the ask.
+	 * @returns A simulated response object.
+	 */
+	public async ask(content: string): Promise<{ response: string; text: string; images: string[] }> {
+		console.log(`[Task#ask] Content: ${content}`)
+		return { response: "Simulated response", text: content, images: [] }
+	}
+
+	/**
+	 * Placeholder for checkpoint save functionality.
+	 * @param saveState - Whether to save the current state.
+	 */
+	public async checkpointSave(saveState: boolean): Promise<void> {
+		console.log(`[Task#checkpointSave] Save state: ${saveState}`)
 	}
 }
