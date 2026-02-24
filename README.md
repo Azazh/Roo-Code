@@ -37,8 +37,7 @@ An append-only, machine-readable history of every mutating action, linking inten
 ## **Technical Deep Dive**
 
 ### **Visual Workflow**
-```mermaid
-descriptionDiagram
+
 sequenceDiagram
     participant U as User
     participant W as Webview (React)
@@ -67,13 +66,13 @@ sequenceDiagram
         H-->>E: Success (trace id)
         E-->>W: Update UI (status, artifacts, trace link)
     end
-```
+
 
 ### **Point of No Return (PONR)**
 - **Definition:** Critical operations like file writes or shell commands that mutate the workspace.
 - **Governance:** PreHooks validate intent and scope before execution; PostHooks ensure traceability and auditability.
 
----
+
 
 ## **Quick Start**
 
@@ -94,7 +93,7 @@ pnpm build
 2. Use the IDE to make a change linked to the intent.
 3. Observe the trace in `.orchestration/agent_trace.jsonl`.
 
----
+
 
 ## **Directory Map**
 
@@ -111,7 +110,7 @@ src/hooks
     └── astCapture.ts        # AST node detection for semantic linkage
 ```
 
----
+
 
 ## **Why Roo-Code Wins**
 
@@ -119,7 +118,7 @@ src/hooks
 
 > **Enterprise-Ready:** Modular hooks, robust governance, and auditability make this fork scalable for large teams and complex projects.
 
----
 
-**License:** MIT
+
+
 
