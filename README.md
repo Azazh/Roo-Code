@@ -38,6 +38,7 @@ An append-only, machine-readable history of every mutating action, linking inten
 
 ### **Visual Workflow**
 
+```mermaid
 sequenceDiagram
     participant U as User
     participant W as Webview (React)
@@ -66,7 +67,7 @@ sequenceDiagram
         H-->>E: Success (trace id)
         E-->>W: Update UI (status, artifacts, trace link)
     end
-
+```
 
 ### **Point of No Return (PONR)**
 - **Definition:** Critical operations like file writes or shell commands that mutate the workspace.
