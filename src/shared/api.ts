@@ -27,7 +27,7 @@ export type ApiHandlerOptions = Omit<ProviderSettings, "apiProvider"> & {
 
 // RouterName
 
-export type RouterName = DynamicProvider | LocalProvider
+export type RouterName = DynamicProvider | LocalProvider | "unbound"
 
 export const isRouterName = (value: string): value is RouterName => isDynamicProvider(value) || isLocalProvider(value)
 

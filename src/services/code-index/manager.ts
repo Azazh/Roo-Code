@@ -419,4 +419,20 @@ export class CodeIndexManager {
 			}
 		}
 	}
+
+	public setWorkspaceEnabled(enabled: boolean): void {
+		// Default implementation
+	}
+
+	public stopIndexing(): void {
+		// Default implementation
+	}
+
+	public static getAllInstances(): CodeIndexManager[] {
+		return Array.from(CodeIndexManager.instances.values())
+	}
+
+	public setAutoEnableDefault(enabled: boolean): void {
+		// Default implementation
+	}
 }
