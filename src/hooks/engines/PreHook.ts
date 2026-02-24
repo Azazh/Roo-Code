@@ -225,4 +225,27 @@ export class PreHook {
 		const traceFilePath = ".orchestration/agent_trace.jsonl"
 		fs.appendFileSync(traceFilePath, JSON.stringify(traceEntry) + "\n")
 	}
+
+	// Concurrency Control: Optimistic Locking
+	static enforceConcurrencyControl(filePath: string, initialHash: string): void {
+		const fs = require("fs")
+		const currentContent = fs.readFileSync(filePath, "utf-8")
+		const currentHash = PreHook.generateContentHash(currentContent)
+
+		if (currentHash !== initialHash) {
+			throw new Error(
+				`Stale File Error: The file "${filePath}" has been modified by another agent or user. Please re-read the file and try again.`,
+			)
+		}
+	}
+
+	// Lesson Recording: Append to CLAUDE.md on verification failure
+	static recordLesson(lesson: string): void {
+		const fs = require("fs")
+		const lessonFilePath = "CLAUDE.md"
+		const timestamp = new Date().toISOString()
+		const lessonEntry = `### Lesson Learned (${timestamp})\n\n${lesson}\n\n`
+
+		fs.appendFileSync(lessonFilePath, lessonEntry)
+	}
 }
