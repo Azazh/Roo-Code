@@ -20,7 +20,6 @@ import { readCommandOutputTool } from "../tools/ReadCommandOutputTool"
 import { writeToFileTool } from "../tools/WriteToFileTool"
 import { editTool } from "../tools/EditTool"
 import { searchReplaceTool } from "../tools/SearchReplaceTool"
-import { editFileTool } from "../tools/EditFileTool"
 import { applyPatchTool } from "../tools/ApplyPatchTool"
 import { searchFilesTool } from "../tools/SearchFilesTool"
 import { executeCommandTool } from "../tools/ExecuteCommandTool"
@@ -158,8 +157,6 @@ export async function presentAssistantMessage(cline: Task) {
 				if (approvalFeedback) {
 					const feedbackText = formatResponse.toolApprovedWithFeedback(approvalFeedback.text)
 					resultContent = `${feedbackText}\n\n${resultContent}`
-
-					// Add feedback images to the image blocks
 					if (approvalFeedback.images) {
 						const feedbackImageBlocks = formatResponse.imageBlocks(approvalFeedback.images)
 						imageBlocks = [...feedbackImageBlocks, ...imageBlocks]
@@ -185,19 +182,17 @@ export async function presentAssistantMessage(cline: Task) {
 
 			const askApproval = async (
 				type: ClineAsk,
-				partialMessage?: string,
-				progressStatus?: ToolProgressStatus,
-				isProtected?: boolean,
+				options: {
+					partialMessage?: string
+					progressStatus?: ToolProgressStatus
+					isProtected?: boolean
+				} = {},
 			) => {
-				const { response, text, images } = await cline.ask(
-					type,
-					partialMessage,
-					false,
-					progressStatus,
-					isProtected || false,
-				)
+				const { partialMessage, progressStatus, isProtected } = options
+				const { response, text, images } = await cline.ask(type)
 
 				if (response !== "yesButtonClicked") {
+					// Handle both messageResponse and noButtonClicked with text.
 					if (text) {
 						await cline.say("user_feedback", text, images)
 						pushToolResult(formatResponse.toolResult(formatResponse.toolDeniedWithFeedback(text), images))
@@ -349,8 +344,6 @@ export async function presentAssistantMessage(cline: Task) {
 						return `[${block.name} for '${block.params.file_path}']`
 					case "search_replace":
 						return `[${block.name} for '${block.params.file_path}']`
-					case "edit_file":
-						return `[${block.name} for '${block.params.file_path}']`
 					case "apply_patch":
 						return `[${block.name}]`
 					case "list_files":
@@ -493,17 +486,14 @@ export async function presentAssistantMessage(cline: Task) {
 
 			const askApproval = async (
 				type: ClineAsk,
-				partialMessage?: string,
-				progressStatus?: ToolProgressStatus,
-				isProtected?: boolean,
+				options: {
+					partialMessage?: string
+					progressStatus?: ToolProgressStatus
+					isProtected?: boolean
+				} = {},
 			) => {
-				const { response, text, images } = await cline.ask(
-					type,
-					partialMessage,
-					false,
-					progressStatus,
-					isProtected || false,
-				)
+				const { partialMessage, progressStatus, isProtected } = options
+				const { response, text, images } = await cline.ask(type)
 
 				if (response !== "yesButtonClicked") {
 					// Handle both messageResponse and noButtonClicked with text.
@@ -711,14 +701,6 @@ export async function presentAssistantMessage(cline: Task) {
 				case "search_replace":
 					await checkpointSaveAndMark(cline)
 					await searchReplaceTool.handle(cline, block as ToolUse<"search_replace">, {
-						askApproval,
-						handleError,
-						pushToolResult,
-					})
-					break
-				case "edit_file":
-					await checkpointSaveAndMark(cline)
-					await editFileTool.handle(cline, block as ToolUse<"edit_file">, {
 						askApproval,
 						handleError,
 						pushToolResult,

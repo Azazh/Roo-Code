@@ -1,8 +1,17 @@
 import * as fs from "fs/promises"
 import * as path from "path"
 import * as vscode from "vscode"
+import crypto from "crypto"
 
 import type { Intent } from "../models/Intent"
+
+// Correct placement of the WriteFileSchema interface
+interface WriteFileSchema {
+	filePath: string
+	content: string
+	intent_id: string // Added for Phase 3
+	mutation_class: "AST_REFACTOR" | "INTENT_EVOLUTION" // Added for Phase 3
+}
 
 export class PreHook {
 	/**
@@ -153,6 +162,10 @@ export class PreHook {
 	 * Enforce scope validation for file operations.
 	 */
 	static enforceScope(filePath: string, intent: Intent): void {
+		if (!intent.owned_scope) {
+			throw new Error(`Intent "${intent.id}" does not have a defined scope.`)
+		}
+
 		const isValid = intent.owned_scope.some((pattern) => {
 			const regex = new RegExp(`^${pattern.replace(/\*\*/g, ".*").replace(/\*/g, "[^/]*")}$`)
 			return regex.test(filePath)
@@ -163,5 +176,53 @@ export class PreHook {
 				`Scope Violation: Intent "${intent.id}" is not authorized to edit "${filePath}". Request scope expansion.`,
 			)
 		}
+	}
+
+	// Utility to generate SHA-256 hashes of string content
+	static generateContentHash(content: string): string {
+		return crypto.createHash("sha256").update(content).digest("hex")
+	}
+
+	// Post-Hook for write_file to serialize trace
+	static postWriteFileHook(writeFileData: WriteFileSchema): void {
+		const contentHash = PreHook.generateContentHash(writeFileData.content)
+
+		const traceEntry = {
+			id: crypto.randomUUID(),
+			timestamp: new Date().toISOString(),
+			vcs: { revision_id: "git_sha_placeholder" },
+			files: [
+				{
+					relative_path: writeFileData.filePath,
+					conversations: [
+						{
+							url: "session_log_placeholder",
+							contributor: {
+								entity_type: "AI",
+								model_identifier: "claude-3-5-sonnet",
+							},
+							ranges: [
+								{
+									start_line: 0, // Placeholder
+									end_line: 0, // Placeholder
+									content_hash: contentHash,
+								},
+							],
+							related: [
+								{
+									type: "specification",
+									value: writeFileData.intent_id,
+								},
+							],
+						},
+					],
+				},
+			],
+		}
+
+		// Append to agent_trace.jsonl
+		const fs = require("fs")
+		const traceFilePath = ".orchestration/agent_trace.jsonl"
+		fs.appendFileSync(traceFilePath, JSON.stringify(traceEntry) + "\n")
 	}
 }

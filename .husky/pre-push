@@ -16,5 +16,8 @@ else
   fi
 fi
 
-# Temporarily disable type-checking during push
-exit 0
+# Run type-checking before pushing
+$pnpm_cmd check-types || {
+  echo "Type-checking failed. Please fix the errors before pushing.";
+  exit 1;
+}
